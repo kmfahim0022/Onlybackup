@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>📷 Gallery Backup</h1>
+
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button class="btn">Upload</button>
+    </form>
+
+    <div class="grid">
+        {% for file in files %}
+        <div class="card glow">
+            <p><a href="{{ file[2] }}" target="_blank">{{ file[1] }}</a></p>
+            <p>
+                <a href="/share/{{ file[0] }}">Share</a> |
+                <a href="/delete/{{ file[0] }}">Delete</a>
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <br>
+    <a href="/">Home</a>
+</body>
+</html>
