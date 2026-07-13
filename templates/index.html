@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Only Backup</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+    <a href="/">🏠 Home</a> | 
+    <a href="/gallery">📷 Gallery</a> | 
+    <a href="/contacts">👤 Contacts</a> | 
+    <a href="/files">📁 Files</a> | 
+    <a href="/settings">⚙ Settings</a>
+</nav>
+
+<div class="container">
+    <h1>Only Backup <span>☁️</span></h1>
+    <p class="tagline">Backup Everything. Restore Anytime.</p>
+
+    <div class="grid">
+        <div class="card glow">
+            <h2>🏠 Home</h2>
+            <p>Total Files: <b id="total">{{ total }}</b></p>
+            <p>Storage Used: <b id="storage">0 MB</b></p>
+            <div class="progress-bar"><div class="progress"></div></div>
+        </div>
+
+        <div class="card glow">
+            <h2>📷 Gallery Backup</h2>
+            <a href="/gallery"><button class="btn">Start Backup</button></a>
+        </div>
+
+        <div class="card glow">
+            <h2>📁 File Manager</h2>
+            <a href="/files"><button class="btn">Open Files</button></a>
+        </div>
+
+        <div class="card glow">
+            <h2>☁️ Cloud Backup</h2>
+            <a href="/upload"><button class="btn">Upload to Cloudinary</button></a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
