@@ -1,0 +1,161 @@
+:root{ 
+    --primary: #3B82F6; 
+    --secondary: #8B5CF6; 
+    --accent: #00E676; 
+    --bg: #0F172A; 
+    --card: #1E293B; 
+} 
+
+body{ 
+    background: var(--bg); 
+    color: white; 
+    font-family: 'Poppins', sans-serif; 
+    padding: 20px; 
+    margin: 0;
+    transition: 0.3s;
+} 
+
+h1 span{ 
+    animation: glow 2s infinite alternate; 
+} 
+
+.tagline{ 
+    color: #94A3B8; 
+} 
+
+.container{ 
+    max-width: 1200px; 
+    margin: auto; 
+} 
+
+nav { 
+    background: rgba(30, 41, 59, 0.6); 
+    backdrop-filter: blur(10px); 
+    padding: 15px; 
+    border-radius: 15px; 
+    margin-bottom: 20px; 
+    text-align: center; 
+}
+nav a { 
+    margin: 0 10px; 
+    color: var(--primary); 
+    text-decoration: none; 
+    font-weight: 500;
+}
+nav a:hover { color: var(--accent); }
+
+.grid{ 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+    gap: 20px; 
+} 
+
+.card{ 
+    background: rgba(30, 41, 59, 0.6); 
+    backdrop-filter: blur(10px); 
+    border-radius: 20px; 
+    padding: 20px; 
+    border: 1px solid rgba(59, 130, 246, 0.3); 
+} 
+
+.glow:hover{ 
+    box-shadow: 0 0 20px var(--primary); 
+    transition: 0.3s; 
+} 
+
+.btn{ 
+    background: linear-gradient(90deg, var(--primary), var(--secondary)); 
+    border: none; 
+    padding: 10px 20px; 
+    border-radius: 12px; 
+    color: white; 
+    cursor: pointer; 
+    position: relative;
+    overflow: hidden;
+} 
+
+.btn:hover{ 
+    box-shadow: 0 0 15px var(--accent); 
+} 
+
+.progress-bar{ 
+    background: #334155; 
+    border-radius: 10px; 
+    height: 8px; 
+    margin-top: 10px; 
+} 
+
+.progress{ 
+    width: 40%; 
+    height: 8px; 
+    background: var(--accent); 
+    border-radius: 10px; 
+    animation: loading 2s infinite; 
+} 
+
+@keyframes glow { 
+    from {text-shadow: 0 0 5px var(--primary);} 
+    to {text-shadow: 0 0 20px var(--secondary);} 
+} 
+
+@keyframes loading { 
+    0%{width:0%} 
+    100%{width:40%} 
+} 
+
+/* FIX 1: .body.light এর বদলে body.light হবে */
+body.light{ 
+    background: #F8FAFC; 
+    color: #0F172A; 
+} 
+body.light .card{ 
+    background: rgba(255,255,255,0.7); 
+    border: 1px solid rgba(0,0,0,0.1);
+} 
+body.light nav{
+    background: rgba(255,255,255,0.7);
+}
+
+/* FIX 2: Ripple effect এর জন্য relative দরকার */
+.btn span{ 
+    position:absolute; 
+    background: rgba(255,255,255,0.5); 
+    border-radius:50%; 
+    transform:scale(0); 
+    animation: ripple 0.6s linear; 
+    pointer-events: none;
+} 
+
+@keyframes ripple { 
+    to{ transform:scale(4); opacity:0; } 
+} 
+
+textarea{ 
+    width:100%; 
+    height:100px; 
+    background:#1E293B; 
+    color:white; 
+    border-radius:10px; 
+    border: 1px solid var(--primary);
+    padding: 10px;
+    box-sizing: border-box;
+} 
+
+.btn-group{ 
+    display:flex; 
+    gap:8px; 
+    margin-top:10px; 
+} 
+
+.btn.small{ 
+    padding:8px 12px; 
+    font-size:14px; 
+} 
+
+.btn.danger{ 
+    background: #EF4444; 
+} 
+
+.btn.danger:hover{ 
+    box-shadow: 0 0 15px #EF4444; 
+  }
