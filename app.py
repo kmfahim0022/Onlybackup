@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file, escape
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
@@ -8,8 +8,6 @@ from dotenv import load_dotenv
 from functools import wraps
 import cloudinary
 import cloudinary.uploader
-import vobject
-import hashlib
 
 load_dotenv()
 app = Flask(__name__)
@@ -130,7 +128,7 @@ def forgot():
         try:
             supabase.auth.reset_password_email(email)
             flash('Password reset link sent to your email!', 'success')
-        except:
+        except Exception as e:
             flash('Email not found.', 'danger')
     return render_template('forgot.html')
 
@@ -190,20 +188,28 @@ def share(file_id):
     res = supabase.table('files').select("url").eq('id', file_id).eq('user_id', user).single().execute()
     if res.data:
         url = res.data['url']
-        qr_link = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={url}"
-        return f"<h2>Share Link</h2><a href='{url}'>{url}</a><br><img src='{qr_link}'><br><a href='/gallery'>Back</a>"
+        escaped_url = escape(url)
+        qr_link = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={escaped_url}"
+        return f"<h2>Share Link</h2><a href='{escaped_url}'>{escaped_url}</a><br><img src='{escape(qr_link)}'><br><a href='/gallery'>Back</a>"
     return "File Not Found"
 
 # 9. CONTACT VCF EXPORT
 @app.route('/export_vcf', methods=['POST'])
 @login_required
 def export_vcf():
-    data = request.form['contacts']
+    data = request.form.get('contacts', '')
+    if not data:
+        flash('No contacts provided.', 'warning')
+        return redirect(url_for('contacts'))
+    
     vcf_content = ""
     for line in data.split('\n'):
         if ',' in line:
             name, number = line.split(',', 1)
+            name = escape(name.strip())
+            number = escape(number.strip())
             vcf_content += f"BEGIN:VCARD\nFN:{name}\nTEL:{number}\nEND:VCARD\n"
+    
     filepath = "contacts.vcf"
     with open(filepath, "w") as f:
         f.write(vcf_content)
