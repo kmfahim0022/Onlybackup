@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="glow">
+    <a href="/">🏠 Home</a>
+    <a href="/gallery">📷 Gallery</a>
+    <a href="/files">📁 Files</a>
+    <a href="/contacts">👤 Contacts</a>
+    <a href="/settings">⚙ Settings</a>
+</nav>
+
+<div class="container">
+    <h1>⚙ Settings</h1>
+    
+    <div class="card glow">
+        <label><input type="checkbox" id="themeToggle"> 🌙 Dark Mode</label><br><br>
+        <label><input type="checkbox" id="wifiOnly"> 📶 Backup over WiFi Only</label><br><br>
+        <label><input type="checkbox" id="autoBackup"> ☁️ Auto Backup</label>
+    </div>
+
+    <a href="/"><button class="btn">Back to Home</button></a>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
