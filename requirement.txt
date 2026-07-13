@@ -1,0 +1,5 @@
+Flask
+cloudinary
+python-dotenv
+vobject
+gunicorn
