@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OnlyBackup - Secure Login</title>
+    
+    <!-- Fonts + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css"/>
+    
+    <style>
+        :root{
+            --bg: #0F172A;
+            --primary: #3B82F6;
+            --secondary: #8B5CF6;
+            --success: #22C55E;
+            --danger: #EF4444;
+            --text: #FFFFFF;
+            --text2: #CBD5E1;
+        }
+        *{font-family: 'Poppins', sans-serif;}
+        body{background: var(--bg); color: var(--text); overflow-x: hidden;}
+
+        /* 3. Animated Gradient Background */
+        .bg-anim{position: fixed; width: 100%; height: 100%; top:0; left:0; z-index:-2;}
+        .bg-anim span{position:absolute; border-radius:50%; filter: blur(100px); opacity:0.4; animation: move 20s infinite alternate;}
+        .bg-anim span:nth-child(1){width:400px; height:400px; background:var(--primary); top:10%; left:10%;}
+        .bg-anim span:nth-child(2){width:400px; height:400px; background:var(--secondary); top:50%; right:10%; animation-delay:5s;}
+        .bg-anim span:nth-child(3){width:300px; height:300px; background:#EC4899; bottom:10%; left:30%; animation-delay:10s;}
+        @keyframes move{0%{transform:translate(0,0) scale(1);} 100%{transform:translate(50px,-50px) scale(1.2);}}
+
+        /* 2. Glassmorphism Card */
+        .login-wrapper{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;}
+        .glass-card{background: rgba(255,255,255,0.05); backdrop-filter: blur(25px); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:40px; width:100%; max-width:420px; box-shadow: 0 8px 32px 0 rgba(0,0,0,0.5);}
+        
+        /* 1. Hero Header */
+        .logo-icon{font-size:3rem; background: linear-gradient(90deg, var(--primary), var(--secondary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;}
+        .brand-name{font-weight:700; font-size:2rem;}
+        .tagline{color: var(--text2); font-size:0.9rem; margin-bottom:25px;}
+
+        /* 4. Beautiful Inputs */
+        .form-label{font-weight:500; color:var(--text2);}
+        .glass-input{background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:var(--text); border-radius:15px; padding:12px; transition:0.3s;}
+        .glass-input:focus{background: rgba(255,255,255,0.12); border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,0.3); color:var(--text);}
+
+        /* 6. Login Button */
+        .btn-login{background: linear-gradient(90deg, var(--primary), var(--secondary)); border:none; color:#fff; font-weight:600; padding:14px; border-radius:15px; transition:0.3s;}
+        .btn-login:hover{transform:translateY(-2px); box-shadow:0 10px 25px rgba(59,130,246,0.4);}
+
+        /* 9. Social Login */
+        .btn-social{background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:var(--text); border-radius:15px; padding:10px; font-weight:500; transition:0.3s;}
+        .btn-social:hover{background: rgba(255,255,255,0.15);}
+        .divider{display:flex; align-items:center; text-align:center; color:var(--text2); margin:20px 0;}
+        .divider::before, .divider::after{content:''; flex:1; border-bottom:1px solid rgba(255,255,255,0.1);}
+        .divider span{padding:0 10px;}
+
+        /* 11. Security Info */
+        .security-info{display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.8rem; color:var(--text2); margin-top:20px;}
+        .security-info i{color:var(--success);}
+
+        /* 13. Footer */
+        .pro-footer{text-align:center; padding:20px; color:var(--text2); font-size:0.8rem;}
+        .pro-footer a{color:var(--text2); text-decoration:none;}
+        .pro-footer a:hover{color:var(--primary);}
+    </style>
+</head>
+<body>
+    <!-- 3. Animated Background -->
+    <div class="bg-anim"><span></span><span></span><span></span></div>
+
+    <div class="login-wrapper">
+        <div class="glass-card" data-aos="fade-up">
+            
+            <!-- 1. Hero Header -->
+            <div class="text-center">
+                <i class="fa-solid fa-cloud-arrow-up logo-icon"></i>
+                <h2 class="brand-name">OnlyBackup</h2>
+                <p class="tagline">Secure Cloud Backup<br>Store your photos, videos and files safely.</p>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- 5. Form -->
+            <form method="POST" id="loginForm">
+                <div class="mb-3">
+                    <label class="form-label"><i class="fa-solid fa-envelope"></i> Email Address</label>
+                    <input type="email" name="email" class="form-control glass-input" placeholder="you@example.com" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><i class="fa-solid fa-lock"></i> Password</label>
+                    <div class="input-group">
+                        <input type="password" name="password" id="password" class="form-control glass-input" placeholder="Enter password" required>
+                        <button type="button" class="btn btn-outline-light" onclick="togglePassword()"><i class="fa-solid fa-eye" id="eyeIcon"></i></button>
+                    </div>
+                    <small id="capsWarning" class="text-warning d-none"><i class="fa-solid fa-triangle-exclamation"></i> Caps Lock is ON</small>
+                </div>
+
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="remember">
+                        <label class="form-check-label" for="remember">Remember this device</label>
+                    </div>
+                    <a href="/forgot" style="color:var(--primary); text-decoration:none;">Forgot Password?</a>
+                </div>
+
+                <!-- 6. Login Button -->
+                <button type="submit" class="btn btn-login w-100" id="loginBtn">
+                    <span class="btn-text">Sign In Securely</span>
+                    <span class="spinner-border spinner-border-sm d-none"></span>
+                </button>
+            </form>
+
+            <!-- 10. Divider -->
+            <div class="divider"><span>OR</span></div>
+
+            <!-- 9. Social Login -->
+            <button class="btn btn-social w-100 mb-2"><i class="fa-brands fa-google"></i> Continue with Google</button>
+            <button class="btn btn-social w-100 mb-2"><i class="fa-brands fa-github"></i> Continue with GitHub</button>
+            <button class="btn btn-social w-100"><i class="fa-brands fa-microsoft"></i> Continue with Microsoft</button>
+
+            <!-- 11. Security Info -->
+            <div class="security-info">
+                <div><i class="fa-solid fa-lock"></i> End-to-End Encryption</div>
+                <div><i class="fa-solid fa-cloud"></i> Cloud Backup</div>
+                <div><i class="fa-solid fa-shield-halved"></i> Military Grade Security</div>
+                <div><i class="fa-solid fa-key"></i> Private Storage</div>
+            </div>
+
+            <p class="text-center mt-4">Don't have an account? <a href="/register" style="color:var(--primary);">Create Account</a></p>
+        </div>
+    </div>
+
+    <!-- 13. Footer -->
+    <footer class="pro-footer">
+        <a href="#">Privacy Policy</a> | <a href="#">Terms</a> | <a href="#">Support</a>
+        <p>Version 2.0 © 2026 OnlyBackup</p>
+    </footer>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>AOS.init();</script>
+    <script>
+
+AOS.init();
+
+// 1. Show / Hide Password + Eye Icon Change
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.classList.remove('fa-eye');
+        eyeIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        eyeIcon.classList.remove('fa-eye-slash');
+        eyeIcon.classList.add('fa-eye');
+    }
+}
+
+// 2. Caps Lock Warning
+const passwordField = document.getElementById('password');
+const capsWarning = document.getElementById('capsWarning');
+
+passwordField.addEventListener('keyup', (e) => {
+    if (e.getModifierState('CapsLock')) {
+        capsWarning.classList.remove('d-none');
+    } else {
+        capsWarning.classList.add('d-none');
+    }
+});
+
+// 3. Email Validation - Real Format Check
+function isValidEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+// 4. Password Validation Rules
+function validatePassword(password) {
+    const errors = [];
+    if (password.length < 8) errors.push("Minimum 8 characters");
+    if (!/[A-Z]/.test(password)) errors.push("1 Uppercase letter");
+    if (!/[a-z]/.test(password)) errors.push("1 Lowercase letter");
+    if (!/[0-9]/.test(password)) errors.push("1 Number");
+    if (!/[^A-Za-z0-9]/.test(password)) errors.push("1 Symbol");
+    return errors;
+}
+
+// 5. Login Button Loading + Validation + Shake Animation
+const form = document.getElementById('loginForm');
+const loginBtn = document.getElementById('loginBtn');
+
+form.addEventListener('submit', (e) => {
+    const email = form.email.value;
+    const password = form.password.value;
+    
+    // Email Check
+    if (!isValidEmail(email)) {
+        e.preventDefault();
+        shakeForm();
+        alert('Please enter a valid email address!');
+        return;
+    }
+    
+    // Password Check
+    const passErrors = validatePassword(password);
+    if (passErrors.length > 0) {
+        e.preventDefault();
+        shakeForm();
+        alert('Password Error:\n- ' + passErrors.join('\n- '));
+        return;
+    }
+
+    // Loading Spinner Start
+    const btnText = loginBtn.querySelector('.btn-text');
+    const spinner = loginBtn.querySelector('.spinner-border');
+    loginBtn.disabled = true;
+    btnText.textContent = 'Logging in...';
+    spinner.classList.remove('d-none');
+});
+
+// 6. Shake Animation for Error
+function shakeForm() {
+    const card = document.querySelector('.glass-card');
+    card.style.animation = 'shake 0.5s';
+    setTimeout(() => { card.style.animation = ''; }, 500);
+}
+
+// Shake CSS Keyframes add করো
+const style = document.createElement('style');
+style.innerHTML = `
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+`;
+document.head.appendChild(style);
+
+// 7. Success Green Check Animation - Flask থেকে success আসলে
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            {% if category == 'success' %}
+                loginBtn.innerHTML = '<i class="fa-solid fa-check"></i> Success! Redirecting...';
+                loginBtn.style.background = 'var(--success)';
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+
+      
+    </script>
+</body>
+</html>
