@@ -1,12 +1,84 @@
 <!DOCTYPE html>
 <html>
-<head><title>Upload File</title></head>
+<head>
+    <title>Upload File</title>
+    <link rel="manifest" href="/static/manifest.json">
+</head>
 <body>
+
     <h1>📤 File Upload</h1>
+
     <form method="POST" enctype="multipart/form-data">
         <input type="file" name="file">
         <button type="submit">Upload</button>
     </form>
+
+    <hr>
+
+    <h1>☁️ Auto Gallery Backup</h1>
+    <p>একবার Folder Select করলে সব Auto Upload হবে। App Close করলেও চলবে।</p>
+
+    <input type="file" id="fileInput" webkitdirectory directory multiple accept="image/*">
+    <button id="startBackup">Start Background Backup</button>
+
+    <p id="status">Status: Idle</p>
+
     <a href="/">⬅ Home</a>
+
+    <script>
+    // Service Worker Register
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/sw.js');
+    }
+
+    // Notification Permission
+    if ('Notification' in window) {
+        Notification.requestPermission();
+    }
+
+    // IndexedDB
+    let db;
+    const request = indexedDB.open('backupDB', 1);
+
+    request.onupgradeneeded = e => {
+      db = e.target.result;
+      db.createObjectStore('pending_uploads', { keyPath: 'id' });
+    };
+
+    request.onsuccess = e => {
+      db = e.target.result;
+    };
+
+    document.getElementById('startBackup').onclick = async () => {
+      const files = document.getElementById('fileInput').files;
+
+      for (let file of files) {
+        db.transaction('pending_uploads', 'readwrite')
+          .objectStore('pending_uploads')
+          .add({
+            id: file.name + file.lastModified,
+            name: file.name,
+            blob: file
+          });
+      }
+
+      const reg = await navigator.serviceWorker.ready;
+      if ('sync' in reg) {
+        await reg.sync.register('backup-photos');
+      }
+
+      document.getElementById('status').innerText =
+        `Status: ${files.length} files added. Uploading in background...`;
+
+      if (Notification.permission === "granted") {
+        new Notification("OnlyBackup Started", {
+          body: `${files.length} photos added to backup queue`
+        });
+      }
+    };
+    </script>
+
 </body>
 </html>
+
+
