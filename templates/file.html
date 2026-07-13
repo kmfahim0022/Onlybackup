@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="glow">
+    <a href="/">🏠 Home</a>
+    <a href="/gallery">📷 Gallery</a>
+    <a href="/files">📁 Files</a>
+    <a href="/contacts">👤 Contacts</a>
+    <a href="/settings">⚙ Settings</a>
+</nav>
+
+<div class="container">
+    <h1>📁 File Manager</h1>
+    <p>এখান থেকে সব File Manage করো</p>
+
+    <div class="grid">
+        {% for file in files %}
+        <div class="card glow">
+            <h3>{{ file[1] }}</h3>
+            <p><a href="{{ file[2] }}" target="_blank">View File</a></p>
+            <div class="btn-group">
+                <a href="/share/{{ file[0] }}" class="btn small">Share</a>
+                <a href="{{ file[2] }}" download class="btn small">Download</a>
+                <a href="/delete/{{ file[0] }}" class="btn small danger" onclick="return confirm('Delete করবা?')">Delete</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if files|length == 0 %}
+    <div class="card glow">
+        <h2>কোনো File নাই</h2>
+        <p>প্রথমে Gallery থেকে File Upload করো</p>
+        <a href="/gallery"><button class="btn">Gallery তে যাও</button></a>
+    </div>
+    {% endif %}
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
