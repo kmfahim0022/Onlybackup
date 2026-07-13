@@ -52,6 +52,53 @@ def register():
             return redirect(url_for('login'))
     return render_template('register.html')
 
+
+
+# 2. REGISTER - With Validation + Flash
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        # 1. Backend Validation
+        if password != confirm_password:
+            flash('Passwords do not match!', 'danger')
+            return render_template('register.html')
+        
+        if len(password) < 8:
+            flash('Password must be at least 8 characters!', 'danger')
+            return render_template('register.html')
+        
+        try:
+            # 2. Supabase এ User Create
+            res = supabase.auth.sign_up({
+                "email": email, 
+                "password": password
+            })
+            
+            if res.user:
+                flash('Account created successfully! Please check your email to verify.', 'success')
+                return redirect(url_for('login'))
+            else:
+                flash('Something went wrong. Please try again.', 'danger')
+                
+        except Exception as e:
+            # 3. Supabase Error Handle - যেমন Email Already Exists
+            error_msg = str(e)
+            if "already registered" in error_msg:
+                flash('This email is already registered. Please login.', 'warning')
+            else:
+                flash(f'Error: {error_msg}', 'danger')
+    
+    # CSS + JS Variable পাঠানোর জন্য
+    css_code = "" # এখানে Part 2 এর CSS কেটে বসাও
+    js_code = ""  # এখানে Part 3 এর JS কেটে বসাও
+    return render_template('register.html', css_code=css_code, js_code=js_code)
+
+
+
 # 2. LOGIN
 @app.route('/login', methods=['GET', 'POST'])
 def login():
