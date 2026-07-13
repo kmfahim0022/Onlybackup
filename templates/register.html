@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OnlyBackup - Create Account</title>
+    
+    <!-- Bootstrap 5 + Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Part 2: CSS এখানে বসবে */
+        {{ css_code }}
+    </style>
+</head>
+<body>
+
+    <!-- Animated Gradient Background -->
+    <div class="bg-animation">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+
+    <!-- Floating Icons -->
+    <div class="floating-icons">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <i class="fa-solid fa-shield-halved"></i>
+        <i class="fa-solid fa-image"></i>
+        <i class="fa-solid fa-file-zipper"></i>
+    </div>
+
+    <div class="container d-flex align-items-center justify-content-center min-vh-100">
+        <div class="glass-card">
+            
+            <!-- Brand Logo -->
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-cloud-arrow-up logo-icon"></i>
+                <h2 class="brand-name">OnlyBackup</h2>
+                <p class="welcome-text">Create your account to start secure backup</p>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Register Form -->
+            <form method="POST" id="registerForm">
+                <div class="mb-3">
+                    <label class="form-label"><i class="fa-solid fa-envelope"></i> Email</label>
+                    <input type="email" name="email" class="form-control glass-input" placeholder="you@example.com" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><i class="fa-solid fa-lock"></i> Password</label>
+                    <div class="input-group">
+                        <input type="password" name="password" id="password" class="form-control glass-input" placeholder="Min 8 characters" required>
+                        <button type="button" class="btn btn-show" onclick="togglePassword()"><i class="fa-solid fa-eye"></i></button>
+                    </div>
+                    <div class="password-strength mt-2">
+                        <div id="strengthBar"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><i class="fa-solid fa-lock"></i> Confirm Password</label>
+                    <input type="password" name="confirm_password" id="confirm_password" class="form-control glass-input" placeholder="Re-enter password" required>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="terms" required>
+                    <label class="form-check-label" for="terms">I agree to Terms & Conditions</label>
+                </div>
+
+                <button type="submit" class="btn btn-create w-100" id="submitBtn">
+                    <span class="btn-text">Create Account</span>
+                    <span class="spinner-border spinner-border-sm d-none"></span>
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="divider"><span>OR</span></div>
+
+            <!-- Google Sign-in UI -->
+            <button class="btn btn-google w-100">
+                <i class="fa-brands fa-google"></i> Continue with Google
+            </button>
+
+            <!-- Login Link -->
+            <p class="text-center mt-4">Already have an account? <a href="/login">Login</a></p>
+
+            <!-- Social Icons -->
+            <div class="social-icons">
+                <a href="#"><i class="fa-brands fa-facebook"></i></a>
+                <a href="#"><i class="fa-brands fa-twitter"></i></a>
+                <a href="#"><i class="fa-brands fa-github"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="professional-footer">
+        <p>© 2026 OnlyBackup. All rights reserved. | <a href="#">Privacy</a> | <a href="#">Terms</a></p>
+    </footer>
+
+    <script>
+        // Part 3: JavaScript এখানে বসবে
+        {{ js_code }}
+    </script>
+</body>
+</html>
