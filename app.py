@@ -1,5 +1,7 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file, escape
+from datetime import timedelta
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file
+from markupsafe import escape  # FIX 1: escape এখান থেকে আসে
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
@@ -13,10 +15,11 @@ load_dotenv()
 app = Flask(__name__)
 
 # 1. SECURE COOKIES + SECRET KEY
-app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "fallback_secret_key_change_me")
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS এ Cookie Secure
-app.config['SESSION_COOKIE_HTTPONLY'] = True # JS দিয়ে Cookie Access বন্ধ
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # JS দিয়ে Cookie Access বন্ধ
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # FIX 2: 30 দিন Remember
 
 # 2. CSRF PROTECTION
 csrf = CSRFProtect(app)
@@ -27,9 +30,9 @@ limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day", "5
 # SUPABASE + CLOUDINARY SETUP
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 cloudinary.config(
-    cloud_name=os.getenv("CLOUD_NAME"),
-    api_key=os.getenv("API_KEY"),
-    api_secret=os.getenv("API_SECRET")
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),  # FIX 3: Key এর নাম ঠিক করলাম
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET")
 )
 
 UPLOAD_FOLDER = "temp_uploads"
@@ -43,7 +46,7 @@ def login_required(f):
             flash('Please login first.', 'warning')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
-    return decorated_function 
+    return decorated_function
 
 # HOME PAGE
 @app.route('/')
@@ -61,63 +64,55 @@ def register():
         email = request.form['email']
         password = request.form['password']
         confirm_password = request.form.get('confirm_password', '')
-        
+
         # 1. Backend Validation
         if password != confirm_password:
             flash('Passwords do not match!', 'danger')
             return render_template('register.html')
-        
         if len(password) < 8:
             flash('Password must be at least 8 characters!', 'danger')
             return render_template('register.html')
-        
+
         try:
             # 2. Supabase এ User Create
-            res = supabase.auth.sign_up({
-                "email": email, 
-                "password": password
-            })
-            
+            res = supabase.auth.sign_up({"email": email, "password": password})
             if res.user:
                 flash('Account created successfully! Please check your email to verify.', 'success')
                 return redirect(url_for('login'))
             else:
                 flash('Something went wrong. Please try again.', 'danger')
-                
         except Exception as e:
-            # 3. Supabase Error Handle - যেমন Email Already Exists
-            error_msg = str(e)
-            if "already registered" in error_msg:
+            # 3. Supabase Error Handle
+            error_msg = str(e).lower()
+            if "already registered" in error_msg or "already exists" in error_msg:
                 flash('This email is already registered. Please login.', 'warning')
             else:
-                flash(f'Error: {error_msg}', 'danger')
-    
+                flash(f'Error: {e}', 'danger')
     return render_template('register.html')
 
 # 2. LOGIN ROUTE - WITH RATE LIMIT
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute") # 1 মিনিটে 5 বারের বেশি Login Try করতে পারবে না
+@limiter.limit("5 per minute")  # 1 মিনিটে 5 বারের বেশি Login Try করতে পারবে না
 def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        remember = request.form.get('remember') # Remember Me
+        remember = request.form.get('remember')  # Remember Me
 
         try:
             res = supabase.auth.sign_in_with_password({"email": email, "password": password})
             session['user'] = res.user.id
-            
+
             # 5. REMEMBER ME
             if remember:
-                session.permanent = True
-                app.permanent_session_lifetime = 86400 * 30 # 30 দিন
-            
+                session.permanent = True  # 30 দিন থাকবে
+            else:
+                session.permanent = False  # Browser close হলে Logout
+
             flash('Login Successful! Welcome Back.', 'success')
             return redirect(url_for('home'))
-            
         except Exception as e:
             flash('Invalid Email or Password. Please try again.', 'danger')
-    
     return render_template('login.html')
 
 # 3. FORGOT PASSWORD ROUTE
@@ -178,6 +173,7 @@ def gallery():
 def delete(file_id):
     user = session['user']
     supabase.table('files').delete().eq('id', file_id).eq('user_id', user).execute()
+    flash('File deleted successfully', 'success')
     return redirect(url_for('gallery'))
 
 # 8. SHARE LINK + QR
@@ -190,8 +186,8 @@ def share(file_id):
         url = res.data['url']
         escaped_url = escape(url)
         qr_link = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={escaped_url}"
-        return f"<h2>Share Link</h2><a href='{escaped_url}'>{escaped_url}</a><br><img src='{escape(qr_link)}'><br><a href='/gallery'>Back</a>"
-    return "File Not Found"
+        return f"<h2>Share Link</h2><a href='{escaped_url}' target='_blank'>{escaped_url}</a><br><img src='{escape(qr_link)}'><br><a href='/gallery'>Back</a>"
+    return "File Not Found", 404
 
 # 9. CONTACT VCF EXPORT
 @app.route('/export_vcf', methods=['POST'])
@@ -210,8 +206,8 @@ def export_vcf():
             number = escape(number.strip())
             vcf_content += f"BEGIN:VCARD\nFN:{name}\nTEL:{number}\nEND:VCARD\n"
     
-    filepath = "contacts.vcf"
-    with open(filepath, "w") as f:
+    filepath = os.path.join(UPLOAD_FOLDER, "contacts.vcf")
+    with open(filepath, "w", encoding="utf-8") as f:
         f.write(vcf_content)
     return send_file(filepath, as_attachment=True)
 
@@ -235,8 +231,10 @@ def settings():
 @login_required
 def contacts():
     if request.method == 'POST':
-        return "Contact Uploaded"
+        flash('Contacts uploaded', 'success')
+        return redirect(url_for('contacts'))
     return render_template('contacts.html')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+    
