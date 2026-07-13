@@ -1,43 +1,58 @@
-from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
 import os
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
+from supabase import create_client, Client
+from dotenv import load_dotenv
+from functools import wraps
 import cloudinary
 import cloudinary.uploader
-from dotenv import load_dotenv
 import vobject
 import hashlib
-from supabase import create_client
 
 load_dotenv()
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "random_key_123")
 
-# Supabase Connect
-supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+# 1. SECURE COOKIES + SECRET KEY
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "fallback_secret_key_change_me")
+app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS এ Cookie Secure
+app.config['SESSION_COOKIE_HTTPONLY'] = True # JS দিয়ে Cookie Access বন্ধ
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# Cloudinary Config
+# 2. CSRF PROTECTION
+csrf = CSRFProtect(app)
+
+# 3. RATE LIMITING - Brute Force Attack বন্ধ
+limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
+
+# SUPABASE + CLOUDINARY SETUP
+supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 cloudinary.config(
-    cloud_name = os.getenv("CLOUD_NAME"),
-    api_key = os.getenv("API_KEY"),
-    api_secret = os.getenv("API_SECRET")
+    cloud_name=os.getenv("CLOUD_NAME"),
+    api_key=os.getenv("API_KEY"),
+    api_secret=os.getenv("API_SECRET")
 )
 
 UPLOAD_FOLDER = "temp_uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Login Check করার Helper
+# LOGIN REQUIRED DECORATOR
 def login_required(f):
-    def wrapper(*args, **kwargs):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
         if 'user' not in session:
+            flash('Please login first.', 'warning')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
-    wrapper.__name__ = f.__name__
-    return wrapper
+    return decorated_function 
 
+# HOME PAGE
 @app.route('/')
 @login_required
 def home():
     user = session['user']
-    res = supabase.table('files').select("id", count="exact").eq('user_id', user['id']).execute()
+    res = supabase.table('files').select("id", count="exact").eq('user_id', user).execute()
     total = res.count
     return render_template('index.html', total=total)
 
@@ -47,20 +62,7 @@ def register():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        res = supabase.auth.sign_up({"email": email, "password": password})
-        if res.user:
-            return redirect(url_for('login'))
-    return render_template('register.html')
-
-
-
-# 2. REGISTER - With Validation + Flash
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
+        confirm_password = request.form.get('confirm_password', '')
         
         # 1. Backend Validation
         if password != confirm_password:
@@ -92,33 +94,55 @@ def register():
             else:
                 flash(f'Error: {error_msg}', 'danger')
     
-    # CSS + JS Variable পাঠানোর জন্য
-    css_code = "" # এখানে Part 2 এর CSS কেটে বসাও
-    js_code = ""  # এখানে Part 3 এর JS কেটে বসাও
-    return render_template('register.html', css_code=css_code, js_code=js_code)
+    return render_template('register.html')
 
-
-
-# 2. LOGIN
+# 2. LOGIN ROUTE - WITH RATE LIMIT
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute") # 1 মিনিটে 5 বারের বেশি Login Try করতে পারবে না
 def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-        if res.user:
-            session['user'] = {"id": res.user.id, "email": res.user.email}
+        remember = request.form.get('remember') # Remember Me
+
+        try:
+            res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+            session['user'] = res.user.id
+            
+            # 5. REMEMBER ME
+            if remember:
+                session.permanent = True
+                app.permanent_session_lifetime = 86400 * 30 # 30 দিন
+            
+            flash('Login Successful! Welcome Back.', 'success')
             return redirect(url_for('home'))
+            
+        except Exception as e:
+            flash('Invalid Email or Password. Please try again.', 'danger')
+    
     return render_template('login.html')
 
-# 3. LOGOUT
+# 3. FORGOT PASSWORD ROUTE
+@app.route('/forgot', methods=['GET', 'POST'])
+def forgot():
+    if request.method == 'POST':
+        email = request.form['email']
+        try:
+            supabase.auth.reset_password_email(email)
+            flash('Password reset link sent to your email!', 'success')
+        except:
+            flash('Email not found.', 'danger')
+    return render_template('forgot.html')
+
+# 4. LOGOUT
 @app.route('/logout')
 def logout():
-    session.pop('user', None)
     supabase.auth.sign_out()
+    session.clear()
+    flash('Logged out successfully.', 'info')
     return redirect(url_for('login'))
 
-# 4. FILE UPLOAD TO CLOUDINARY
+# 5. FILE UPLOAD TO CLOUDINARY
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
@@ -135,42 +159,42 @@ def upload():
                 supabase.table('files').insert({
                     "name": file.filename,
                     "url": url,
-                    "user_id": session['user']['id']
+                    "user_id": session['user']
                 }).execute()
                 os.remove(filepath)
                 return jsonify({"status": "success", "url": url})
     return render_template('upload.html')
 
-# 5. GALLERY VIEW
+# 6. GALLERY VIEW
 @app.route('/gallery')
 @login_required
 def gallery():
     user = session['user']
-    res = supabase.table('files').select("*").eq('user_id', user['id']).execute()
+    res = supabase.table('files').select("*").eq('user_id', user).execute()
     files = res.data
     return render_template('gallery.html', files=files)
 
-# 6. FILE MANAGER - Delete
+# 7. FILE MANAGER - Delete
 @app.route('/delete/<int:file_id>')
 @login_required
 def delete(file_id):
     user = session['user']
-    supabase.table('files').delete().eq('id', file_id).eq('user_id', user['id']).execute()
+    supabase.table('files').delete().eq('id', file_id).eq('user_id', user).execute()
     return redirect(url_for('gallery'))
 
-# 7. SHARE LINK + QR
+# 8. SHARE LINK + QR
 @app.route('/share/<int:file_id>')
 @login_required
 def share(file_id):
     user = session['user']
-    res = supabase.table('files').select("url").eq('id', file_id).eq('user_id', user['id']).single().execute()
+    res = supabase.table('files').select("url").eq('id', file_id).eq('user_id', user).single().execute()
     if res.data:
         url = res.data['url']
         qr_link = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={url}"
         return f"<h2>Share Link</h2><a href='{url}'>{url}</a><br><img src='{qr_link}'><br><a href='/gallery'>Back</a>"
     return "File Not Found"
 
-# 8. CONTACT VCF EXPORT
+# 9. CONTACT VCF EXPORT
 @app.route('/export_vcf', methods=['POST'])
 @login_required
 def export_vcf():
@@ -185,22 +209,22 @@ def export_vcf():
         f.write(vcf_content)
     return send_file(filepath, as_attachment=True)
 
-# 9. FILES PAGE
+# 10. FILES PAGE
 @app.route('/files')
 @login_required
 def files():
     user = session['user']
-    res = supabase.table('files').select("*").eq('user_id', user['id']).execute()
+    res = supabase.table('files').select("*").eq('user_id', user).execute()
     files = res.data
     return render_template('files.html', files=files)
 
-# 10. SETTINGS PAGE
+# 11. SETTINGS PAGE
 @app.route('/settings')
 @login_required
 def settings():
     return render_template('settings.html')
 
-# 11. CONTACTS PAGE
+# 12. CONTACTS PAGE
 @app.route('/contacts', methods=['GET', 'POST'])
 @login_required
 def contacts():
