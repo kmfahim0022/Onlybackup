@@ -5,7 +5,7 @@ import cloudinary.uploader
 from dotenv import load_dotenv
 import sqlite3
 import vobject # pip install vobject
-
+import hashlib # উপরে Add করো
 load_dotenv()
 app = Flask(__name__)
 
@@ -147,3 +147,17 @@ def contacts():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+
+
+
+# 9. DB Table এ hash column Add করো - একবার run করলেই হবে
+@app.route('/init')
+def init():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("ALTER TABLE files ADD COLUMN hash TEXT")
+    conn.close()
+    return "DB Updated"
