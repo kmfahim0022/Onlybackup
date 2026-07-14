@@ -1,6 +1,6 @@
 flask
 gunicorn
-supabase
+cloudinary
 supabase
 python-dotenv
 flask-limiter
