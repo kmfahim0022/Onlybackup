@@ -34,7 +34,7 @@
 
         /* 2. Glassmorphism Card */
         .login-wrapper{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;}
-        .glass-card{background: rgba(255,255,255,0.05); backdrop-filter: blur(25px); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:40px; width:100%; max-width:420px; box-shadow: 0 8px 32px 0 rgba(0,0,0,0.5);}
+        .glass-card{background: rgba(255,255,255,0.05); backdrop-filter: blur(25px); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:40px; width:100%; max-width:420px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);}
         
         /* 1. Hero Header */
         .logo-icon{font-size:3rem; background: linear-gradient(90deg, var(--primary), var(--secondary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;}
@@ -45,10 +45,16 @@
         .form-label{font-weight:500; color:var(--text2);}
         .glass-input{background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:var(--text); border-radius:15px; padding:12px; transition:0.3s;}
         .glass-input:focus{background: rgba(255,255,255,0.12); border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,0.3); color:var(--text);}
+        .glass-input::placeholder{color: rgba(255,255,255,0.5);}
+
+        /* Form Errors */
+        .invalid-feedback{color: var(--danger); font-size: 0.85rem; display: block; margin-top: 5px;}
+        .is-invalid{border-color: var(--danger) !important;}
 
         /* 6. Login Button */
         .btn-login{background: linear-gradient(90deg, var(--primary), var(--secondary)); border:none; color:#fff; font-weight:600; padding:14px; border-radius:15px; transition:0.3s;}
-        .btn-login:hover{transform:translateY(-2px); box-shadow:0 10px 25px rgba(59,130,246,0.4);}
+        .btn-login:hover:not(:disabled){transform:translateY(-2px); box-shadow:0 10px 25px rgba(59,130,246,0.4);}
+        .btn-login:disabled{opacity: 0.7; cursor: not-allowed;}
 
         /* 9. Social Login */
         .btn-social{background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:var(--text); border-radius:15px; padding:10px; font-weight:500; transition:0.3s;}
@@ -65,6 +71,11 @@
         .pro-footer{text-align:center; padding:20px; color:var(--text2); font-size:0.8rem;}
         .pro-footer a{color:var(--text2); text-decoration:none;}
         .pro-footer a:hover{color:var(--primary);}
+
+        /* Alert Styling */
+        .alert{border-radius: 15px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);}
+        .alert-danger{border-color: var(--danger); background: rgba(239,68,68,0.1);}
+        .alert-success{border-color: var(--success); background: rgba(34,197,94,0.1);}
     </style>
 </head>
 <body>
@@ -85,31 +96,67 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show">{{ message }}</div>
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                        </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
 
-            <!-- 5. Form -->
-            <form method="POST" id="loginForm">
+            <!-- 5. Form with Flask-WTF -->
+            <form method="POST" id="loginForm" novalidate>
+                {{ form.hidden_tag() }}
+
+                <!-- Email Field -->
                 <div class="mb-3">
-                    <label class="form-label"><i class="fa-solid fa-envelope"></i> Email Address</label>
-                    <input type="email" name="email" class="form-control glass-input" placeholder="you@example.com" required>
+                    <label class="form-label" for="{{ form.email.id }}">
+                        <i class="fa-solid fa-envelope"></i> Email Address
+                    </label>
+                    {% if form.email.errors %}
+                        {{ form.email(class="form-control glass-input is-invalid", placeholder="you@example.com") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.email.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.email(class="form-control glass-input", placeholder="you@example.com") }}
+                    {% endif %}
                 </div>
 
+                <!-- Password Field -->
                 <div class="mb-3">
-                    <label class="form-label"><i class="fa-solid fa-lock"></i> Password</label>
+                    <label class="form-label" for="{{ form.password.id }}">
+                        <i class="fa-solid fa-lock"></i> Password
+                    </label>
                     <div class="input-group">
-                        <input type="password" name="password" id="password" class="form-control glass-input" placeholder="Enter password" required>
-                        <button type="button" class="btn btn-outline-light" onclick="togglePassword()"><i class="fa-solid fa-eye" id="eyeIcon"></i></button>
+                        {% if form.password.errors %}
+                            {{ form.password(class="form-control glass-input is-invalid", id="password", placeholder="Enter password", type="password") }}
+                        {% else %}
+                            {{ form.password(class="form-control glass-input", id="password", placeholder="Enter password", type="password") }}
+                        {% endif %}
+                        <button type="button" class="btn btn-outline-light" onclick="togglePassword()">
+                            <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                        </button>
                     </div>
-                    <small id="capsWarning" class="text-warning d-none"><i class="fa-solid fa-triangle-exclamation"></i> Caps Lock is ON</small>
+                    {% if form.password.errors %}
+                        <div class="invalid-feedback" style="display: block;">
+                            {% for error in form.password.errors %}
+                                {{ error }}<br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <small id="capsWarning" class="text-warning d-none">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Caps Lock is ON
+                    </small>
                 </div>
 
+                <!-- Remember & Forgot Password -->
                 <div class="d-flex justify-content-between mb-3">
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="remember">
-                        <label class="form-check-label" for="remember">Remember this device</label>
+                        {{ form.remember(class="form-check-input", id="remember") }}
+                        <label class="form-check-label" for="{{ form.remember.id }}">Remember this device</label>
                     </div>
                     <a href="/forgot" style="color:var(--primary); text-decoration:none;">Forgot Password?</a>
                 </div>
@@ -125,9 +172,15 @@
             <div class="divider"><span>OR</span></div>
 
             <!-- 9. Social Login -->
-            <button class="btn btn-social w-100 mb-2"><i class="fa-brands fa-google"></i> Continue with Google</button>
-            <button class="btn btn-social w-100 mb-2"><i class="fa-brands fa-github"></i> Continue with GitHub</button>
-            <button class="btn btn-social w-100"><i class="fa-brands fa-microsoft"></i> Continue with Microsoft</button>
+            <button type="button" class="btn btn-social w-100 mb-2" onclick="alert('Google login coming soon!')">
+                <i class="fa-brands fa-google"></i> Continue with Google
+            </button>
+            <button type="button" class="btn btn-social w-100 mb-2" onclick="alert('GitHub login coming soon!')">
+                <i class="fa-brands fa-github"></i> Continue with GitHub
+            </button>
+            <button type="button" class="btn btn-social w-100" onclick="alert('Microsoft login coming soon!')">
+                <i class="fa-brands fa-microsoft"></i> Continue with Microsoft
+            </button>
 
             <!-- 11. Security Info -->
             <div class="security-info">
@@ -147,121 +200,105 @@
         <p>Version 2.0 © 2026 OnlyBackup</p>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>AOS.init();</script>
     <script>
+        AOS.init();
 
-AOS.init();
+        // 1. Show / Hide Password + Eye Icon Change
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
 
-// 1. Show / Hide Password + Eye Icon Change
-function togglePassword() {
-    const passwordInput = document.getElementById('password');
-    const eyeIcon = document.getElementById('eyeIcon');
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        eyeIcon.classList.remove('fa-eye');
-        eyeIcon.classList.add('fa-eye-slash');
-    } else {
-        passwordInput.type = 'password';
-        eyeIcon.classList.remove('fa-eye-slash');
-        eyeIcon.classList.add('fa-eye');
-    }
-}
+        // 2. Caps Lock Warning
+        const passwordField = document.getElementById('password');
+        const capsWarning = document.getElementById('capsWarning');
 
-// 2. Caps Lock Warning
-const passwordField = document.getElementById('password');
-const capsWarning = document.getElementById('capsWarning');
+        passwordField.addEventListener('keyup', (e) => {
+            if (e.getModifierState('CapsLock')) {
+                capsWarning.classList.remove('d-none');
+            } else {
+                capsWarning.classList.add('d-none');
+            }
+        });
 
-passwordField.addEventListener('keyup', (e) => {
-    if (e.getModifierState('CapsLock')) {
-        capsWarning.classList.remove('d-none');
-    } else {
-        capsWarning.classList.add('d-none');
-    }
-});
+        // 3. Email Validation - Real Format Check
+        function isValidEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
 
-// 3. Email Validation - Real Format Check
-function isValidEmail(email) {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-}
+        // 4. Password Validation Rules
+        function validatePassword(password) {
+            const errors = [];
+            if (password.length < 8) errors.push("Minimum 8 characters");
+            if (!/[A-Z]/.test(password)) errors.push("1 Uppercase letter");
+            if (!/[a-z]/.test(password)) errors.push("1 Lowercase letter");
+            if (!/[0-9]/.test(password)) errors.push("1 Number");
+            if (!/[^A-Za-z0-9]/.test(password)) errors.push("1 Symbol");
+            return errors;
+        }
 
-// 4. Password Validation Rules
-function validatePassword(password) {
-    const errors = [];
-    if (password.length < 8) errors.push("Minimum 8 characters");
-    if (!/[A-Z]/.test(password)) errors.push("1 Uppercase letter");
-    if (!/[a-z]/.test(password)) errors.push("1 Lowercase letter");
-    if (!/[0-9]/.test(password)) errors.push("1 Number");
-    if (!/[^A-Za-z0-9]/.test(password)) errors.push("1 Symbol");
-    return errors;
-}
+        // 5. Login Button Loading + Validation + Shake Animation
+        const form = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
 
-// 5. Login Button Loading + Validation + Shake Animation
-const form = document.getElementById('loginForm');
-const loginBtn = document.getElementById('loginBtn');
+        form.addEventListener('submit', (e) => {
+            const email = form.email.value;
+            const password = form.password.value;
+            
+            // Email Check
+            if (!isValidEmail(email)) {
+                e.preventDefault();
+                shakeForm();
+                alert('Please enter a valid email address!');
+                return;
+            }
+            
+            // Password Check
+            const passErrors = validatePassword(password);
+            if (passErrors.length > 0) {
+                e.preventDefault();
+                shakeForm();
+                alert('Password Error:\n- ' + passErrors.join('\n- '));
+                return;
+            }
 
-form.addEventListener('submit', (e) => {
-    const email = form.email.value;
-    const password = form.password.value;
-    
-    // Email Check
-    if (!isValidEmail(email)) {
-        e.preventDefault();
-        shakeForm();
-        alert('Please enter a valid email address!');
-        return;
-    }
-    
-    // Password Check
-    const passErrors = validatePassword(password);
-    if (passErrors.length > 0) {
-        e.preventDefault();
-        shakeForm();
-        alert('Password Error:\n- ' + passErrors.join('\n- '));
-        return;
-    }
+            // Loading Spinner Start
+            const btnText = loginBtn.querySelector('.btn-text');
+            const spinner = loginBtn.querySelector('.spinner-border');
+            loginBtn.disabled = true;
+            btnText.textContent = 'Logging in...';
+            spinner.classList.remove('d-none');
+        });
 
-    // Loading Spinner Start
-    const btnText = loginBtn.querySelector('.btn-text');
-    const spinner = loginBtn.querySelector('.spinner-border');
-    loginBtn.disabled = true;
-    btnText.textContent = 'Logging in...';
-    spinner.classList.remove('d-none');
-});
+        // 6. Shake Animation for Error
+        function shakeForm() {
+            const card = document.querySelector('.glass-card');
+            card.style.animation = 'shake 0.5s';
+            setTimeout(() => { card.style.animation = ''; }, 500);
+        }
 
-// 6. Shake Animation for Error
-function shakeForm() {
-    const card = document.querySelector('.glass-card');
-    card.style.animation = 'shake 0.5s';
-    setTimeout(() => { card.style.animation = ''; }, 500);
-}
-
-// Shake CSS Keyframes add করো
-const style = document.createElement('style');
-style.innerHTML = `
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
-}
-`;
-document.head.appendChild(style);
-
-// 7. Success Green Check Animation - Flask থেকে success আসলে
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            {% if category == 'success' %}
-                loginBtn.innerHTML = '<i class="fa-solid fa-check"></i> Success! Redirecting...';
-                loginBtn.style.background = 'var(--success)';
-            {% endif %}
-        {% endfor %}
-    {% endif %}
-{% endwith %}
-
-
-      
+        // Shake CSS Keyframes
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-10px); }
+                75% { transform: translateX(10px); }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
