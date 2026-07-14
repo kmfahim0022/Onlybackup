@@ -1,14 +1,9 @@
-        flask
-    gunicorn
-    cloudinary
-    supabase==2.4.2
-    python-dotenv
-    flask-limiter
-    flask-wtf
-    email-validator
-    markupsafe
-
-
-
-
-
+flask
+gunicorn
+supabase
+supabase
+python-dotenv
+flask-limiter
+flask-wtf
+email-validator
+markupsafe
